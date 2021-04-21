@@ -9,10 +9,54 @@ const htmlEntities = (str) =>
 const MermaidChart = (code, title='') => {
   try {
     var needsUniqueId = "render" + Murmur(code, 42).toString();
+    var pngUniqueId = needsUniqueId.replace("render", "png");
     Mermaid.mermaidAPI.render(needsUniqueId, code, sc => {code=sc});
+    var width = ""; // J:
     if (title && String(title).length) {
+        // J:
+        let m = title.match(/(\d+%)/);
+        if (m && m.length > 1) {
+          width = m[1];
+        }
         title = `<div class="mermaid-title">${htmlEntities(title)}</div>`;
     }
+
+    // J:
+    /*
+    code = code.replaceAll('font-size:14px', 'font-size:12px');
+    code = code.replaceAll('font-size:16px', 'font-size:14px');
+    let r = `<div class="mermaid"><img src="data:image/svg+xml;base64,${btoa(code)}" width=${width} height="100%"/></div>`;
+    console.log("svg code is: ", code);
+    return r;
+    */
+
+    // J:
+    {
+      code = code.replaceAll('font-size:14px', 'font-size:12px');
+      code = code.replaceAll('font-size:16px', 'font-size:14px');
+      var img = new Image();
+      img.crossOrigin = 'Anonymous';
+      img.decoding = 'sync';
+      img.src = `data:image/svg+xml;base64,${btoa(code)}`;
+      img.onload = function () {
+        var canvas = document.createElement('CANVAS');
+        var ctx = canvas.getContext('2d');
+        var pngBase64;
+        canvas.height = img.naturalHeight;
+        canvas.width = img.naturalWidth;
+        console.log("Width, height: ", canvas.height, canvas.width);
+        ctx.drawImage(img, 0, 0);
+        pngBase64 = canvas.toDataURL("image/png", 1.0);
+        let widthStr = width ? `width=${width}` : '';
+        document.querySelector(`#${pngUniqueId}`).innerHTML = `<img src="`+pngBase64+`" ${widthStr}/>`;
+      }
+    }
+    //let r = `<div class="mermaid"><img src="data:image/png;base64,${dataURL}" width=${width} height="100%"/></div>`;
+    let r = `<div class="mermaid" id="${pngUniqueId}"></div>`;
+    console.log("r is: ", r);
+    return r;
+
+
     return `<div class="mermaid">${title}${code}</div>`;
   } catch (err) {
     return `<pre>${htmlEntities(err.name)}: ${htmlEntities(err.message)}</pre>`;
